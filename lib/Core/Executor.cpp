@@ -267,6 +267,12 @@ cl::opt<std::string>
 
 /*** Termination criteria options ***/
 
+cl::opt<std::string> RustBacktraceFunctionName(
+    "rust-backtrace-func-name", cl::init("_Unwind_Backtrace"),
+    cl::desc("External backtrace function used in Rust backtrace when "
+             "specifying RUST_BACKTRACE=1"),
+    cl::cat(TerminationCat));
+
 cl::list<Executor::TerminateReason> ExitOnErrorType(
     "exit-on-error-type",
     cl::desc(
@@ -293,9 +299,10 @@ cl::list<Executor::TerminateReason> ExitOnErrorType(
         clEnumValN(Executor::UnexpectedException, "UnexpectedException",
                    "An unexpected exception was thrown"),
         clEnumValN(Executor::Unhandled, "Unhandled",
-                   "Unhandled instruction hit") KLEE_LLVM_CL_VAL_END),
-    cl::ZeroOrMore,
-    cl::cat(TerminationCat));
+                   "Unhandled instruction hit"),
+        clEnumValN(Executor::RUSTPanic, "RUSTPanic", "The rust program crashed")
+            KLEE_LLVM_CL_VAL_END),
+    cl::ZeroOrMore, cl::cat(TerminationCat));
 
 cl::opt<unsigned long long> MaxInstructions(
     "max-instructions",
@@ -444,6 +451,7 @@ const char *Executor::TerminateReasonNames[] = {
   [ UncaughtException ] = "uncaught_exception",
   [ UnexpectedException ] = "unexpected_exception",
   [ Unhandled ] = "xxx",
+  [ RUSTPanic ] = "rust_panic",
 };
 
 
@@ -3807,8 +3815,15 @@ void Executor::callExternalFunction(ExecutionState &state,
 
   bool success = externalDispatcher->executeCall(function, target->inst, args);
   if (!success) {
-    terminateStateOnError(state, "failed external call: " + function->getName(),
+    if (function->getName() == RustBacktraceFunctionName) {
+      std::string MsgString;
+      llvm::raw_string_ostream msg(MsgString);
+      state.dumpStack(msg);
+      terminateStateOnError(state, "Rust Panic detected: " + msg.str(), RUSTPanic);
+    } else {
+      terminateStateOnError(state, "failed external call: " + function->getName(),
                           External);
+    }
     return;
   }
 

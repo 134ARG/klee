@@ -113,6 +113,7 @@ public:
     UncaughtException,
     UnexpectedException,
     Unhandled,
+    RUSTPanic,
   };
 
   /// The random number generator.
