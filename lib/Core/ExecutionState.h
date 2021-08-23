@@ -235,6 +235,12 @@ public:
   /// @brief Disables forking for this state. Set by user code
   bool forkDisabled;
 
+  /// @brief Whether the state encounters a core panic
+  bool hasCorePanic;
+
+  /// @brief Whether the state has normal panic report
+  bool hasStdPanic;
+
 public:
   #ifdef KLEE_UNITTEST
   // provide this function only in the context of unittests

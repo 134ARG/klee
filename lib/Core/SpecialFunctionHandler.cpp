@@ -291,7 +291,18 @@ void SpecialFunctionHandler::handleAbort(ExecutionState &state,
                            KInstruction *target,
                            std::vector<ref<Expr> > &arguments) {
   assert(arguments.size()==0 && "invalid number of arguments to abort");
-  executor.terminateStateOnError(state, "abort failure", Executor::Abort);
+  if (state.hasCorePanic) {
+    std::string MsgString;
+    llvm::raw_string_ostream msg(MsgString);
+    state.dumpStack(msg);
+    executor.terminateStateOnError(state, "Rust panic detected:\n" + msg.str(),
+                                   Executor::RUSTPanic);
+  } else if (state.hasStdPanic) {
+    klee_message("User-called panic. Normal terminate.");
+    executor.terminateState(state);
+  } else {
+    executor.terminateStateOnError(state, "abort failure", Executor::Abort);
+  }
 }
 
 void SpecialFunctionHandler::handleExit(ExecutionState &state,

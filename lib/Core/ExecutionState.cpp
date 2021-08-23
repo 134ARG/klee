@@ -79,6 +79,8 @@ ExecutionState::ExecutionState(KFunction *kf) :
     steppedInstructions(0),
     instsSinceCovNew(0),
     coveredNew(false),
+    hasCorePanic(false),
+    hasStdPanic(false),
     forkDisabled(false) {
   pushFrame(nullptr, kf);
   setID();
@@ -112,6 +114,8 @@ ExecutionState::ExecutionState(const ExecutionState& state):
                              ? state.unwindingInformation->clone()
                              : nullptr),
     coveredNew(state.coveredNew),
+    hasCorePanic(state.hasCorePanic),
+    hasStdPanic(state.hasStdPanic),
     forkDisabled(state.forkDisabled) {
   for (const auto &cur_mergehandler: openMergeStack)
     cur_mergehandler->addOpenState(this);

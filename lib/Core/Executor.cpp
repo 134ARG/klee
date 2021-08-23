@@ -49,6 +49,7 @@
 #include "klee/Support/FloatEvaluation.h"
 #include "klee/Support/ModuleUtil.h"
 #include "klee/Support/OptionCategories.h"
+#include "klee/Support/Rust.h"
 #include "klee/System/MemoryUsage.h"
 #include "klee/System/Time.h"
 
@@ -272,6 +273,18 @@ cl::opt<std::string> RustBacktraceFunctionName(
     cl::desc("External backtrace function used in Rust backtrace when "
              "specifying RUST_BACKTRACE=1"),
     cl::cat(TerminationCat));
+
+cl::list<std::string>
+    RealPanicFunc("real-panic-func",
+                    cl::desc("Termination function for the real panic."),
+                    cl::value_desc("panic function name"),
+                    cl::cat(TerminationCat));
+
+cl::list<std::string>
+    IgnorePanicFunc("ignore-panic-func",
+                    cl::desc("Panic functions to ignore."),
+                    cl::value_desc("panic function name"),
+                    cl::cat(TerminationCat));
 
 cl::list<Executor::TerminateReason> ExitOnErrorType(
     "exit-on-error-type",
@@ -1800,6 +1813,24 @@ void Executor::executeCall(ExecutionState &state, KInstruction *ki, Function *f,
 
     state.pushFrame(state.prevPC, kf);
     state.pc = kf->instructions;
+
+    std::vector<std::string>::iterator sreal = RealPanicFunc.begin();
+    std::vector<std::string>::iterator ereal = RealPanicFunc.end();
+
+    for (; sreal != ereal; ++sreal) {
+      if (*sreal == demangle_legacy_rust_symbol(kf->function->getName())) {
+        state.hasCorePanic = true;
+      }
+    }
+
+    std::vector<std::string>::iterator signore = IgnorePanicFunc.begin();
+    std::vector<std::string>::iterator eignore = IgnorePanicFunc.end();
+
+    for (; signore != eignore; ++signore) {
+      if (*signore == demangle_legacy_rust_symbol(kf->function->getName())) {
+        state.hasStdPanic = true;
+      }
+    }
 
     if (statsTracker)
       statsTracker->framePushed(state, &state.stack[state.stack.size() - 2]);
