@@ -3623,6 +3623,7 @@ void Executor::terminateStateEarly(ExecutionState &state,
       (AlwaysOutputSeeds && seedMap.count(&state)))
     interpreterHandler->processTestCase(state, (message + "\n").str().c_str(),
                                         "early");
+  klee_message("Early!!");
   terminateState(state);
 }
 
@@ -3630,6 +3631,7 @@ void Executor::terminateStateOnExit(ExecutionState &state) {
   if (!OnlyOutputStatesCoveringNew || state.coveredNew || 
       (AlwaysOutputSeeds && seedMap.count(&state)))
     interpreterHandler->processTestCase(state, 0, 0);
+  klee_message("Exit!!");
   terminateState(state);
 }
 
@@ -3733,6 +3735,7 @@ void Executor::terminateStateOnError(ExecutionState &state,
     interpreterHandler->processTestCase(state, msg.str().c_str(), suffix);
   }
     
+  klee_message("Error!!");
   terminateState(state);
 
   if (shouldExitOn(termReason))
